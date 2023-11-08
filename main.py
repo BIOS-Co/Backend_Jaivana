@@ -1,7 +1,7 @@
 #Fast API:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from pydantic import BaseModel
 #packages:
 import pandas as pd
 import numpy as np
@@ -44,6 +44,27 @@ app.add_middleware(
 
 
 #FUNCTIONS:
+
+class RecomendarProductosRequest(BaseModel):
+    nit_del_cliente: str
+    departamento: str = None
+    ciiu: int = None
+    seccion: str = None
+    producto_1: str = None
+    producto_2: str = None
+    producto_3: str = None
+    producto_4: str = None
+    producto_5: str = None
+    producto_6: str = None
+    producto_7: str = None
+    producto_8: str = None
+    producto_9: str = None
+    producto_10: str = None
+    producto_11: str = None
+    producto_12: str = None
+    producto_13: str = None
+    producto_14: str = None
+    producto_15: str = None
 
 def combinations(list1,list2):
   """
@@ -438,32 +459,29 @@ for i in data_ventas_with_dates.index:
 data_ventas_with_dates["nit"]=data_ventas_with_dates["nit"].astype(int)
 
 @app.post("/recomendar-productos")
-def recomendar_productos(nit_del_cliente: str, departamento: str = None, ciiu:int=None, seccion:str=None, producto_1: str = None, producto_2: str = None, producto_3: str = None, producto_4: str = None,
-                        producto_5: str = None, producto_6: str = None, producto_7: str = None, producto_8: str = None,
-                        producto_9: str = None, producto_10: str = None, producto_11: str = None, producto_12: str = None,
-                        producto_13: str = None, producto_14: str = None, producto_15: str = None):
+def recomendar_productos(request_data: RecomendarProductosRequest):
     
     # Agregar los campos ingresados a la lista
     campos_ingresados.append({
-        "Nit del Cliente": nit_del_cliente,
-        "Departamento": departamento,
-        "Ciiu": ciiu,
-        "Seccion":seccion,
-        "Producto 1": producto_1,
-        "Producto 2": producto_2,
-        "Producto 3": producto_3,
-        "Producto 4": producto_4,
-        "Producto 5": producto_5,
-        "Producto 6": producto_6,
-        "Producto 7": producto_7,
-        "Producto 8": producto_8,
-        "Producto 9": producto_9,
-        "Producto 10": producto_10,
-        "Producto 11": producto_11,
-        "Producto 12": producto_12,
-        "Producto 13": producto_13,
-        "Producto 14": producto_14,
-        "Producto 15": producto_15
+        "Nit del Cliente": request_data.nit_del_cliente,
+        "Departamento": request_data.departamento,
+        "Ciiu": request_data.ciiu,
+        "Seccion": request_data.seccion,
+        "Producto 1":  request_data.producto_1,
+        "Producto 2":  request_data.producto_2,
+        "Producto 3":request_data.producto_3,
+        "Producto 4":request_data.producto_4,
+        "Producto 5":request_data.producto_5,
+        "Producto 6":request_data.producto_6,
+        "Producto 7":request_data.producto_7,
+        "Producto 8":request_data.producto_8,
+        "Producto 9":request_data.producto_9,
+        "Producto 10":request_data.producto_10,
+        "Producto 11":request_data.producto_11,
+        "Producto 12":request_data.producto_12,
+        "Producto 13":request_data.producto_13,
+        "Producto 14":request_data.producto_14,
+        "Producto 15":request_data.producto_15,
     })
     
     p="Producto "
