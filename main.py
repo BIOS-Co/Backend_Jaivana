@@ -1,5 +1,6 @@
 #Fast API:
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 #packages:
 import pandas as pd
@@ -23,6 +24,23 @@ from sklearn.cluster import MiniBatchKMeans
 import joblib
 
 app = FastAPI()
+
+#CORDS:
+
+"""
+CORDS
+"""
+origins = [
+    "*",  
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 #FUNCTIONS:
