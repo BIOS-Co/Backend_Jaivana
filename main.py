@@ -23,6 +23,17 @@ from sklearn.cluster import KMeans
 from sklearn.cluster import MiniBatchKMeans
 import joblib
 
+#Packages Pricing:
+#import psycopg2
+
+#Credentials to connect to the database:
+user = "bios"
+password = "6lYNDoNBTJ"
+database = "sumatecbi"
+host = "powerbi.jaivanaweb.co"
+port = 45012
+
+
 app = FastAPI()
 
 #CORDS:
@@ -44,27 +55,6 @@ app.add_middleware(
 
 
 #FUNCTIONS:
-
-class RecomendarProductosRequest(BaseModel):
-    nit_del_cliente: str
-    departamento: str = None
-    ciiu: int = None
-    seccion: str = None
-    producto_1: str = None
-    producto_2: str = None
-    producto_3: str = None
-    producto_4: str = None
-    producto_5: str = None
-    producto_6: str = None
-    producto_7: str = None
-    producto_8: str = None
-    producto_9: str = None
-    producto_10: str = None
-    producto_11: str = None
-    producto_12: str = None
-    producto_13: str = None
-    producto_14: str = None
-    producto_15: str = None
 
 def combinations(list1,list2):
   """
@@ -458,6 +448,27 @@ for i in data_ventas_with_dates.index:
   data_ventas_with_dates["nit"].loc[i]=data_ventas_with_dates["nit"].loc[i].replace(".0","")
 data_ventas_with_dates["nit"]=data_ventas_with_dates["nit"].astype(int)
 
+class RecomendarProductosRequest(BaseModel):
+    nit_del_cliente: str
+    departamento: str = None
+    ciiu: int = None
+    seccion: str = None
+    producto_1: str = None
+    producto_2: str = None
+    producto_3: str = None
+    producto_4: str = None
+    producto_5: str = None
+    producto_6: str = None
+    producto_7: str = None
+    producto_8: str = None
+    producto_9: str = None
+    producto_10: str = None
+    producto_11: str = None
+    producto_12: str = None
+    producto_13: str = None
+    producto_14: str = None
+    producto_15: str = None
+
 @app.post("/recomendar-productos")
 def recomendar_productos(request_data: RecomendarProductosRequest):
     
@@ -533,7 +544,7 @@ def recomendar_productos(request_data: RecomendarProductosRequest):
         possible_combinations=tipificasion("n_departamento","Ciiu",data_ventas)
         articulos_recomendados=generate_recomendation(possible_combinations,data_ventas,"DEPARTAMENTO_CIIU",Departamento,Ciiu,ventas,region,seccion)
         articulos_recomendados.iloc[0]
-        print("DEPTO_CIIU")
+        #print("DEPTO_CIIU")
     except (KeyError, IndexError, AttributeError):
         #REGION_CIIU
         try:
@@ -541,7 +552,7 @@ def recomendar_productos(request_data: RecomendarProductosRequest):
             possible_combinations=tipificasion("REGION","Ciiu",data_ventas)
             articulos_recomendados=generate_recomendation(possible_combinations,data_ventas,"REGION_CIIU",Departamento,Ciiu,ventas,region,seccion)
             articulos_recomendados.iloc[0]
-            print("REGION_CIIU")
+            #print("REGION_CIIU")
         except (KeyError, IndexError):
             #DEPARTAMENTO_SECCION
             try:
@@ -549,7 +560,7 @@ def recomendar_productos(request_data: RecomendarProductosRequest):
                 possible_combinations=tipificasion("n_departamento","seccion",data_ventas)
                 articulos_recomendados=generate_recomendation(possible_combinations,data_ventas,"DEPARTAMENTO_SECCION",Departamento,Ciiu,ventas,region,seccion)
                 articulos_recomendados.iloc[0]
-                print("DEPTO_SECCION")
+                #print("DEPTO_SECCION")
             except (KeyError, IndexError):
                 #REGION_SECCION:
                 try:
@@ -557,10 +568,10 @@ def recomendar_productos(request_data: RecomendarProductosRequest):
                     possible_combinations=tipificasion("REGION","seccion",data_ventas)
                     articulos_recomendados=generate_recomendation(possible_combinations,data_ventas,"REGION_SECCION",Departamento,Ciiu,ventas,region,seccion)
                     articulos_recomendados.iloc[0]
-                    print("REGION_SECCION")
+                    #print("REGION_SECCION")
                 except (KeyError, IndexError):
                     
-                    print("ML MODEL")
+                    #print("ML MODEL")
                     # Pipelien and Model:
                     pipeline = joblib.load('models/pipeline.joblib')
                     models = joblib.load("models/group_models.joblib")
@@ -568,8 +579,451 @@ def recomendar_productos(request_data: RecomendarProductosRequest):
                     #Data relation between  CIIU and Sector, SubSector:
                     data_ciiu_Sector=pd.read_excel("data/CIIU-Sector.xlsx")
                     articulos_recomendados=generate_recomendation_ml_model(path_csv_compras,Departamento,Ciiu,data_ciiu_Sector,data_ventas,pipeline,models)
-                    print("ML MODEL")
+                    #print("ML MODEL")
     #Prepedido:
     prepedido=preproduct_recommend(path_csv_compras,data_ventas_with_dates)
         
     return articulos_recomendados.to_dict(orient="records"), prepedido.to_dict(orient="records")
+  
+
+class Pricing_Request(BaseModel):
+    opcion_seleccionada: str
+    opcion_seleccionada_tipo_iteraccion: str
+    Codigo_Tornillo:str=None
+    Descuento:str=None
+    Pareto:str
+    Nit:str
+    Umbral_Iteracciones:int
+    grupo:str=None
+    subgrupo:str=None
+    
+  
+
+@app.post("/pricing")
+def recomendar_productos(request_data: Pricing_Request):
+  
+  #Predefined_Discounts:
+  descuentos_listas={"lista1":0.35,"lista2":0.2,"lista3":0.1,"lista4":0.25,"lista5":0.35}
+    
+    
+  opcion_seleccionada=request_data.opcion_seleccionada
+  opcion_seleccionada_tipo_iteraccion=request_data.opcion_seleccionada_tipo_iteraccion
+  Codigo_Tornillo=request_data.Codigo_Tornillo
+  Descuento=request_data.Descuento
+  Pareto=request_data.Pareto
+  Nit=request_data.Nit
+  Umbral_Iteracciones=request_data.Umbral_Iteracciones
+  grupo=request_data.grupo
+  subgrupo=request_data.subgrupo
+  
+  if Descuento!=None:
+    Descuento=float(Descuento)/100
+  else:
+    Descuento="Predefinido"
+    
+  ### SE CALCULARÁ EL PRECIO DE UN SOLO PRODUCTO:
+  if opcion_seleccionada=='Precio de un Producto':      
+      # Realizar la conexión a la base de datos
+      try:
+          connection = psycopg2.connect(
+              user=user,
+              password=password,
+              database=database,
+              host=host,
+              port=port
+          )
+          
+          output_costo=None
+          # Ejecutar una consulta y cargar los resultados en un DataFrame
+          if opcion_seleccionada_tipo_iteraccion=="Iterar por Historial Proveedor":
+              query = f"SELECT codigo, cantidad, costo, valor_iva, valor_item, fecha, nit FROM bi_itemfc_compras WHERE nit='{Nit}' AND fecha IN (SELECT DISTINCT fecha FROM bi_itemfc_compras WHERE nit='{Nit}' ORDER BY fecha DESC LIMIT 5) ORDER BY fecha DESC;"
+              itemfc_compras = pd.read_sql_query(query, connection)  
+              
+              if itemfc_compras.shape[0]==0:
+                  output_costo="No es posible fijar un precio; ya que no hay historial del proveedor en base de datos"
+                  ultima_fecha_iterada="No fue necesario iterar a través de ninguna fecha"
+                  
+              else:
+                  unique_dates=list(itemfc_compras["fecha"].unique())
+                  if Umbral_Iteracciones<1:
+                      Umbral_Iteracciones=1
+                  elif Umbral_Iteracciones>5:
+                      Umbral_Iteracciones=5
+                  if len(unique_dates)<5:
+                      Umbral_Iteracciones=len(unique_dates)
+              
+                  for i in range(Umbral_Iteracciones):
+                      ultima_fecha_iterada=unique_dates[i]
+                      itemfc_compras_temporal=itemfc_compras[itemfc_compras["fecha"]==unique_dates[i]]
+                      if Codigo_Tornillo in list(itemfc_compras_temporal["codigo"].unique()):
+                          costo=itemfc_compras_temporal[itemfc_compras_temporal["codigo"]==Codigo_Tornillo]["costo"].iloc[0]
+                          valor_iva=itemfc_compras_temporal[itemfc_compras_temporal["codigo"]==Codigo_Tornillo]["valor_iva"].iloc[0]
+                          costo_unitario=costo+valor_iva
+                          output_costo=costo_unitario
+                          break
+                      else:
+                          if i==0:
+                              query_2 = f"SELECT codigo, nombre, codigo_grupo, nombre_grupo, codigo_subgrupo, nombre_subgrupo, peso FROM bi_articulo where codigo='{Codigo_Tornillo}'"
+                              bi_articulo = pd.read_sql_query(query_2, connection)
+                              if bi_articulo.shape[0]==0:
+                                  output_costo="No se puede fijar un precio al producto; ya que no se encuentra información suficiente en base de datos para calibrar la curva de su costo, en este caso debido a que el producto no se encuentra en la tabla bi_articulo"
+                                  break
+                              else:
+                                  codigo_grupo=bi_articulo["codigo_grupo"].iloc[0]
+                                  codigo_subgrupo=bi_articulo["codigo_subgrupo"].iloc[0]
+                                  peso=bi_articulo["peso"].iloc[0]
+                                  #peso=input(f"El peso actual del producto seleccionado es {peso} gramos, modifiquelo si es el caso:") or peso
+                                  peso=float(peso)
+                                  query_codigos = f"SELECT DISTINCT(codigo) FROM bi_articulo where codigo_grupo='{codigo_grupo}' AND codigo_subgrupo='{codigo_subgrupo}'"
+                                  articulos_alternativos = pd.read_sql_query(query_codigos, connection)
+                                  articulos_alternativos=list(articulos_alternativos["codigo"].unique())
+                                  articulos_alternativos.remove(Codigo_Tornillo)
+                                  itemfc_compras_temporal_temporal=itemfc_compras_temporal[itemfc_compras_temporal['codigo'].isin(articulos_alternativos)]
+                                  if itemfc_compras_temporal_temporal.shape[0]!=0:
+                                      costo_alternativo=itemfc_compras_temporal_temporal["costo"].iloc[0]
+                                      valor_iva_alternativo=itemfc_compras_temporal_temporal["valor_iva"].iloc[0]
+                                      costo_unitario_alternativo=costo_alternativo+valor_iva_alternativo
+                                      codigo_producto_alterno=itemfc_compras_temporal_temporal["codigo"].iloc[0]
+                                      query_3 = f"SELECT codigo, nombre, codigo_grupo, nombre_grupo, codigo_subgrupo, nombre_subgrupo, peso FROM bi_articulo where codigo='{codigo_producto_alterno}'"
+                                      bi_articulo_2 = pd.read_sql_query(query_3, connection)
+                                      if bi_articulo_2.shape[0]!=0:
+                                          peso_alternativo=bi_articulo_2["peso"].iloc[0]
+                                          costo_gramo=costo_unitario_alternativo/peso_alternativo
+                                          #costo_gramo=input(f"El costo por gramo actual para los productos de la familia a la que pertenece el producto seleccionado es {costo_gramo} pesos, modifiquelo si es el caso:") or costo_gramo
+                                          costo_gramo=float(costo_gramo)
+                                          output_costo=costo_gramo*peso
+                                          break
+                          else:
+                              codigo_grupo=bi_articulo["codigo_grupo"].iloc[0]
+                              codigo_subgrupo=bi_articulo["codigo_subgrupo"].iloc[0]
+                              #peso=bi_articulo["peso"].iloc[0]
+                              query_codigos = f"SELECT DISTINCT(codigo) FROM bi_articulo where codigo_grupo='{codigo_grupo}' AND codigo_subgrupo='{codigo_subgrupo}'"
+                              articulos_alternativos = pd.read_sql_query(query_codigos, connection)
+                              articulos_alternativos=list(articulos_alternativos["codigo"].unique())
+                              articulos_alternativos.remove(Codigo_Tornillo)
+                              itemfc_compras_temporal_temporal=itemfc_compras_temporal[itemfc_compras_temporal['codigo'].isin(articulos_alternativos)]
+                              if itemfc_compras_temporal_temporal.shape[0]!=0:
+                                  costo_alternativo=itemfc_compras_temporal_temporal["costo"].iloc[0]
+                                  valor_iva_alternativo=itemfc_compras_temporal_temporal["valor_iva"].iloc[0]
+                                  costo_unitario_alternativo=costo_alternativo+valor_iva_alternativo
+                                  codigo_producto_alterno=itemfc_compras_temporal_temporal["codigo"].iloc[0]
+                                  query_3 = f"SELECT codigo, nombre, codigo_grupo, nombre_grupo, codigo_subgrupo, nombre_subgrupo, peso FROM bi_articulo where codigo='{codigo_producto_alterno}'"
+                                  bi_articulo_2 = pd.read_sql_query(query_3, connection)
+                                  if bi_articulo_2.shape[0]!=0:
+                                      peso_alternativo=bi_articulo_2["peso"].iloc[0]
+                                      costo_gramo=costo_unitario_alternativo/peso_alternativo
+                                      #costo_gramo=input(f"El costo por gramo actual para los productos de la familia a la que pertenece el producto seleccionado es {costo_gramo} pesos, modifiquelo si es el caso:") or costo_gramo
+                                      costo_gramo=float(costo_gramo)
+                                      output_costo=costo_gramo*peso
+                                      break
+
+          elif opcion_seleccionada_tipo_iteraccion=="Iterar por Historial Producto o Familia":
+              provisional_query = f"SELECT codigo, nombre, codigo_grupo, nombre_grupo, codigo_subgrupo, nombre_subgrupo, peso FROM bi_articulo where codigo='{Codigo_Tornillo}'"
+              provisional_bi_articulo = pd.read_sql_query(provisional_query, connection) 
+              if provisional_bi_articulo.shape==0:
+                  output_costo="No se puede fijar un precio al producto; ya que no se encuentra información suficiente en base de datos para calibrar la curva de su costo, en este caso debido a que el producto no se encuentra en la tabla bi_articulo"
+                  ultima_fecha_iterada="No fue necesario iterar a través de ninguna fecha"
+              else:
+                  codigos_productos_provisional=list(provisional_bi_articulo["codigo"].unique())
+                  codigos_str_provisional = ",".join([f"'{codigo}'" for codigo in codigos_productos_provisional])
+                  query = f"SELECT codigo, cantidad, costo, valor_iva, valor_item, fecha, nit FROM bi_itemfc_compras WHERE codigo IN ({codigos_str_provisional}) AND fecha IN (SELECT DISTINCT fecha FROM bi_itemfc_compras WHERE codigo IN ({codigos_str_provisional}) ORDER BY fecha DESC LIMIT 5) ORDER BY fecha DESC;"
+                  itemfc_compras = pd.read_sql_query(query, connection)    
+                  
+                  if itemfc_compras.shape[0]==0:
+                      output_costo="No es posible fijar un precio; ya que no hay historial del proveedor en base de datos"
+                      ultima_fecha_iterada="No fue necesario iterar a través de ninguna fecha"
+                  
+                  else:
+                      unique_dates=list(itemfc_compras["fecha"].unique())
+                      if Umbral_Iteracciones<1:
+                          Umbral_Iteracciones=1
+                      elif Umbral_Iteracciones>5:
+                          Umbral_Iteracciones=5
+                      if len(unique_dates)<5:
+                          Umbral_Iteracciones=len(unique_dates)
+
+                      for i in range(Umbral_Iteracciones):
+                          ultima_fecha_iterada=unique_dates[i]
+                          itemfc_compras_temporal=itemfc_compras[(itemfc_compras["fecha"]==unique_dates[i]) & (itemfc_compras["nit"]==Nit)]
+                          if Codigo_Tornillo in list(itemfc_compras_temporal["codigo"].unique()):
+                              costo=itemfc_compras_temporal[itemfc_compras_temporal["codigo"]==Codigo_Tornillo]["costo"].iloc[0]
+                              valor_iva=itemfc_compras_temporal[itemfc_compras_temporal["codigo"]==Codigo_Tornillo]["valor_iva"].iloc[0]
+                              costo_unitario=costo+valor_iva
+                              output_costo=costo_unitario
+                              break
+                          else:
+                              if i==0:
+                                  query_2 = f"SELECT codigo, nombre, codigo_grupo, nombre_grupo, codigo_subgrupo, nombre_subgrupo, peso FROM bi_articulo where codigo='{Codigo_Tornillo}'"
+                                  bi_articulo = pd.read_sql_query(query_2, connection)
+                                  if bi_articulo.shape[0]==0:
+                                      output_costo="No se puede fijar un precio al producto; ya que no se encuentra información suficiente en base de datos para calibrar la curva de su costo, en este caso debido a que el producto no se encuentra en la tabla bi_articulo"
+                                      break
+                                  else:
+                                      codigo_grupo=bi_articulo["codigo_grupo"].iloc[0]
+                                      codigo_subgrupo=bi_articulo["codigo_subgrupo"].iloc[0]
+                                      peso=bi_articulo["peso"].iloc[0]
+                                      #peso=input(f"El peso actual del producto seleccionado es {peso} gramos, modifiquelo si es el caso:") or peso
+                                      peso=float(peso)
+                                      query_codigos = f"SELECT DISTINCT(codigo) FROM bi_articulo where codigo_grupo='{codigo_grupo}' AND codigo_subgrupo='{codigo_subgrupo}'"
+                                      articulos_alternativos = pd.read_sql_query(query_codigos, connection)
+                                      articulos_alternativos=list(articulos_alternativos["codigo"].unique())
+                                      articulos_alternativos.remove(Codigo_Tornillo)
+                                      itemfc_compras_temporal_temporal=itemfc_compras_temporal[itemfc_compras_temporal['codigo'].isin(articulos_alternativos)]
+                                      if itemfc_compras_temporal_temporal.shape[0]!=0:
+                                          costo_alternativo=itemfc_compras_temporal_temporal["costo"].iloc[0]
+                                          valor_iva_alternativo=itemfc_compras_temporal_temporal["valor_iva"].iloc[0]
+                                          costo_unitario_alternativo=costo_alternativo+valor_iva_alternativo
+                                          codigo_producto_alterno=itemfc_compras_temporal_temporal["codigo"].iloc[0]
+                                          query_3 = f"SELECT codigo, nombre, codigo_grupo, nombre_grupo, codigo_subgrupo, nombre_subgrupo, peso FROM bi_articulo where codigo='{codigo_producto_alterno}'"
+                                          bi_articulo_2 = pd.read_sql_query(query_3, connection)
+                                          if bi_articulo_2.shape[0]!=0:
+                                              peso_alternativo=bi_articulo_2["peso"].iloc[0]
+                                              costo_gramo=costo_unitario_alternativo/peso_alternativo
+                                              #costo_gramo=input(f"El costo por gramo actual para los productos de la familia a la que pertenece el producto seleccionado es {costo_gramo} pesos, modifiquelo si es el caso:") or costo_gramo
+                                              costo_gramo=float(costo_gramo)
+                                              output_costo=costo_gramo*peso
+                                              break
+                              else:
+                                  codigo_grupo=bi_articulo["codigo_grupo"].iloc[0]
+                                  codigo_subgrupo=bi_articulo["codigo_subgrupo"].iloc[0]
+                                  #peso=bi_articulo["peso"].iloc[0]
+                                  query_codigos = f"SELECT DISTINCT(codigo) FROM bi_articulo where codigo_grupo='{codigo_grupo}' AND codigo_subgrupo='{codigo_subgrupo}'"
+                                  articulos_alternativos = pd.read_sql_query(query_codigos, connection)
+                                  articulos_alternativos=list(articulos_alternativos["codigo"].unique())
+                                  articulos_alternativos.remove(Codigo_Tornillo)
+                                  itemfc_compras_temporal_temporal=itemfc_compras_temporal[itemfc_compras_temporal['codigo'].isin(articulos_alternativos)]
+                                  if itemfc_compras_temporal_temporal.shape[0]!=0:
+                                      costo_alternativo=itemfc_compras_temporal_temporal["costo"].iloc[0]
+                                      valor_iva_alternativo=itemfc_compras_temporal_temporal["valor_iva"].iloc[0]
+                                      costo_unitario_alternativo=costo_alternativo+valor_iva_alternativo
+                                      codigo_producto_alterno=itemfc_compras_temporal_temporal["codigo"].iloc[0]
+                                      query_3 = f"SELECT codigo, nombre, codigo_grupo, nombre_grupo, codigo_subgrupo, nombre_subgrupo, peso FROM bi_articulo where codigo='{codigo_producto_alterno}'"
+                                      bi_articulo_2 = pd.read_sql_query(query_3, connection)
+                                      if bi_articulo_2.shape[0]!=0:
+                                          peso_alternativo=bi_articulo_2["peso"].iloc[0]
+                                          costo_gramo=costo_unitario_alternativo/peso_alternativo
+                                          #costo_gramo=input(f"El costo por gramo actual para los productos de la familia a la que pertenece el producto seleccionado es {costo_gramo} pesos, modifiquelo si es el caso:") or costo_gramo
+                                          costo_gramo=float(costo_gramo)
+                                          output_costo=costo_gramo*peso
+                                          break   
+
+            
+              
+  
+                  
+          if output_costo==None:
+              output_costo="No se puede fijar un precio al producto; ya que se iteró hasta el número máximo de fechas  y no se encontró un producto importado que pertenezca al mismo grupo y subgrupo que permita calibrar la curva del costo del producto"
+          
+          if isinstance(output_costo, str):
+              output_precio=output_costo
+          else:
+              if Pareto=="Pareto":
+                  precio_lista_5=output_costo/(0.65*0.65)
+                  precio_lista_4=precio_lista_5
+                  precio_lista_1=precio_lista_5/0.8
+                  precio_lista_2=precio_lista_1
+                  precio_lista_3=0.9*precio_lista_1
+              else:
+                  precio_lista_5=output_costo/(0.6*0.65)
+                  precio_lista_4=precio_lista_5
+                  precio_lista_1=precio_lista_5/0.8
+                  precio_lista_2=precio_lista_1
+                  precio_lista_3=0.9*precio_lista_1
+                  
+              if Descuento=="Predefinido":
+                  precio_lista_1=precio_lista_1-precio_lista_1*descuentos_listas["lista1"]
+                  precio_lista_2=precio_lista_2-precio_lista_2*descuentos_listas["lista2"]
+                  precio_lista_3=precio_lista_3-precio_lista_3*descuentos_listas["lista3"]
+                  precio_lista_4=precio_lista_4-precio_lista_4*descuentos_listas["lista4"]
+                  precio_lista_5=precio_lista_5-precio_lista_5*descuentos_listas["lista5"]
+                  
+              else:
+                  precio_lista_1=precio_lista_1-precio_lista_1*Descuento
+                  precio_lista_2=precio_lista_2-precio_lista_2*Descuento
+                  precio_lista_3=precio_lista_3-precio_lista_3*Descuento
+                  precio_lista_4=precio_lista_4-precio_lista_4*Descuento
+                  precio_lista_5=precio_lista_5-precio_lista_5*Descuento
+              
+              output_precio=pd.DataFrame({"Lista":list(descuentos_listas.keys()),"Precio_Venta":[precio_lista_1,precio_lista_2,precio_lista_3,precio_lista_4,precio_lista_5]})
+              
+              
+          #print("Ultima Fecha Iterada:",ultima_fecha_iterada)
+          #print(output_precio)
+
+
+      except (Exception, psycopg2.Error) as error:
+          print("Error al conectarse a la base de datos:", error)
+      finally:
+          # Cerrar la conexión
+          if connection:
+              connection.close()
+              print("Conexión cerrada")
+      
+      
+      
+  elif opcion_seleccionada=='Precios de todos los productos pertenecientes a un grupo y subgrupo':
+      
+      # Realizar la conexión a la base de datos
+      try:
+          connection = psycopg2.connect(
+              user=user,
+              password=password,
+              database=database,
+              host=host,
+              port=port
+          )
+          
+          output_costo=None
+          # Ejecutar una consulta y cargar los resultados en un DataFrame
+          query = f"SELECT codigo, nombre, codigo_grupo, nombre_grupo, codigo_subgrupo, nombre_subgrupo, peso FROM bi_articulo where codigo_grupo='{grupo}' AND codigo_subgrupo='{subgrupo}'"
+          bi_articulo = pd.read_sql_query(query, connection)
+          if bi_articulo.shape[0]==0:
+              output_costo="No es posible calcular precios; ya que en la tabla bi_articulo no existe ningún articulo perteneciente al grupo y subgrupo indicado"
+              ultima_fecha_iterada="No fue necesario iterar a través de ninguna fecha"
+          else:
+              if opcion_seleccionada_tipo_iteraccion=="Iterar por Historial Proveedor":
+                  codigos_productos=list(bi_articulo["codigo"].unique())
+                  query = f"SELECT codigo, cantidad, costo, valor_iva, valor_item, fecha, nit FROM bi_itemfc_compras WHERE nit='{nit}' AND fecha IN (SELECT DISTINCT fecha FROM bi_itemfc_compras WHERE nit='{nit}' ORDER BY fecha DESC LIMIT 5) ORDER BY fecha DESC;"
+                  itemfc_compras = pd.read_sql_query(query, connection)
+                  if itemfc_compras.shape[0]==0:
+                      output_costo="No es posible fijar un precio; ya que no hay historial del proveedor en base de datos"
+                      ultima_fecha_iterada="No fue necesario iterar a través de ninguna fecha"
+                  else:
+                      unique_dates=list(itemfc_compras["fecha"].unique())
+                      if umbral_iteracciones<1:
+                          umbral_iteracciones=1
+                      elif umbral_iteracciones>5:
+                          umbral_iteracciones=5
+                      if len(unique_dates)<5:
+                          umbral_iteracciones=len(unique_dates)
+                      
+                      for i in range(umbral_iteracciones):
+                          ultima_fecha_iterada=unique_dates[i]
+                          itemfc_compras_temporal=itemfc_compras[itemfc_compras["fecha"]==unique_dates[i]]
+                          costo_unitario_un_producto=None
+                          for j in codigos_productos:
+                              if j in list(itemfc_compras_temporal["codigo"].unique()):
+                                  costo_un_producto=itemfc_compras_temporal[itemfc_compras_temporal["codigo"]==j]["costo"].iloc[0]
+                                  valor_iva_un_producto=itemfc_compras_temporal[itemfc_compras_temporal["codigo"]==j]["valor_iva"].iloc[0]
+                                  codigo_un_producto=j
+                                  costo_unitario_un_producto=costo_un_producto+valor_iva_un_producto
+                                  break
+                          if costo_unitario_un_producto!=None:
+                              peso_un_producto=bi_articulo[bi_articulo["codigo"]==codigo_un_producto]["peso"].iloc[0]
+                              costo_gramo=costo_unitario_un_producto/peso_un_producto
+                              #costo_gramo=input(f"El costo por gramo actual para los productos de la familia seleccionada es {costo_gramo} pesos, modifiquelo si es el caso:") or costo_gramo
+                              costo_gramo=float(costo_gramo)
+                              bi_articulo["Costo_Unitario"]=np.zeros((bi_articulo.shape[0]))
+                              for index in bi_articulo.index:
+                                  bi_articulo["Costo_Unitario"].loc[index]=bi_articulo["peso"].loc[index]*costo_gramo
+                              output_costo=bi_articulo
+                              break
+              elif opcion_seleccionada_tipo_iteraccion=="Iterar por Historial Producto o Familia":
+                  codigos_productos_provisional=list(bi_articulo["codigo"].unique())
+                  codigos_str_provisional = ",".join([f"'{codigo}'" for codigo in codigos_productos_provisional])
+                  query = f"SELECT codigo, cantidad, costo, valor_iva, valor_item, fecha, nit FROM bi_itemfc_compras WHERE codigo IN ({codigos_str_provisional}) AND fecha IN (SELECT DISTINCT fecha FROM bi_itemfc_compras WHERE codigo IN ({codigos_str_provisional}) ORDER BY fecha DESC LIMIT 5) ORDER BY fecha DESC;"
+                  itemfc_compras = pd.read_sql_query(query, connection)
+                      
+                  if itemfc_compras.shape[0]==0:
+                      output_costo="No es posible fijar un precio; ya que no hay historial de la familia en base de datos"
+                      ultima_fecha_iterada="No fue necesario iterar a través de ninguna fecha"
+                  else:
+                      unique_dates=list(itemfc_compras["fecha"].unique())
+                      if umbral_iteracciones<1:
+                          umbral_iteracciones=1
+                      elif umbral_iteracciones>5:
+                          umbral_iteracciones=5
+                      if len(unique_dates)<5:
+                          umbral_iteracciones=len(unique_dates)
+                          
+                          
+                      
+                      for i in range(umbral_iteracciones):
+                          ultima_fecha_iterada=unique_dates[i]
+                          itemfc_compras_temporal=itemfc_compras[(itemfc_compras["fecha"]==unique_dates[i]) & (itemfc_compras["nit"]==nit)]
+                          costo_unitario_un_producto=None
+                          for j in codigos_productos:
+                              if j in list(itemfc_compras_temporal["codigo"].unique()):
+                                  costo_un_producto=itemfc_compras_temporal[itemfc_compras_temporal["codigo"]==j]["costo"].iloc[0]
+                                  valor_iva_un_producto=itemfc_compras_temporal[itemfc_compras_temporal["codigo"]==j]["valor_iva"].iloc[0]
+                                  codigo_un_producto=j
+                                  costo_unitario_un_producto=costo_un_producto+valor_iva_un_producto
+                                  break
+                          if costo_unitario_un_producto!=None:
+                              peso_un_producto=bi_articulo[bi_articulo["codigo"]==codigo_un_producto]["peso"].iloc[0]
+                              costo_gramo=costo_unitario_un_producto/peso_un_producto
+                              #costo_gramo=input(f"El costo por gramo actual para los productos de la familia seleccionada es {costo_gramo} pesos, modifiquelo si es el caso:") or costo_gramo
+                              costo_gramo=float(costo_gramo)
+                              bi_articulo["Costo_Unitario"]=np.zeros((bi_articulo.shape[0]))
+                              for index in bi_articulo.index:
+                                  bi_articulo["Costo_Unitario"].loc[index]=bi_articulo["peso"].loc[index]*costo_gramo
+                              output_costo=bi_articulo
+                              break
+        
+          if isinstance(output_costo, pd.DataFrame):
+              output_costo["Precio_Venta_Lista_1"]=np.zeros((output_costo.shape[0]))
+              output_costo["Precio_Venta_Lista_2"]=np.zeros((output_costo.shape[0]))
+              output_costo["Precio_Venta_Lista_3"]=np.zeros((output_costo.shape[0]))
+              output_costo["Precio_Venta_Lista_4"]=np.zeros((output_costo.shape[0]))
+              output_costo["Precio_Venta_Lista_5"]=np.zeros((output_costo.shape[0]))
+              if pareto=="Pareto":
+                  for index in output_costo.index:
+                      output_costo["Precio_Venta_Lista_5"].loc[index]=output_costo["Costo_Unitario"].loc[index]/(0.65*0.65)
+                      output_costo["Precio_Venta_Lista_4"].loc[index]=output_costo["Precio_Venta_Lista_5"].loc[index]
+                      output_costo["Precio_Venta_Lista_1"].loc[index]=output_costo["Precio_Venta_Lista_5"].loc[index]/0.8
+                      output_costo["Precio_Venta_Lista_2"].loc[index]=output_costo["Precio_Venta_Lista_1"].loc[index]
+                      output_costo["Precio_Venta_Lista_3"].loc[index]=output_costo["Precio_Venta_Lista_1"].loc[index]*0.9
+              else:
+                  for index in output_costo.index:
+                      output_costo["Precio_Venta_Lista_5"].loc[index]=output_costo["Costo_Unitario"].loc[index]/(0.6*0.65)
+                      output_costo["Precio_Venta_Lista_4"].loc[index]=output_costo["Precio_Venta_Lista_5"].loc[index]
+                      output_costo["Precio_Venta_Lista_1"].loc[index]=output_costo["Precio_Venta_Lista_5"].loc[index]/0.8
+                      output_costo["Precio_Venta_Lista_2"].loc[index]=output_costo["Precio_Venta_Lista_1"].loc[index]
+                      output_costo["Precio_Venta_Lista_3"].loc[index]=output_costo["Precio_Venta_Lista_1"].loc[index]*0.9
+                  
+              if descuento=="Predefinido":
+                  output_costo["Precio_Venta_Lista_1"]=output_costo["Precio_Venta_Lista_1"]-output_costo["Precio_Venta_Lista_1"]*descuentos_listas["lista1"]
+                  output_costo["Precio_Venta_Lista_2"]=output_costo["Precio_Venta_Lista_2"]-output_costo["Precio_Venta_Lista_2"]*descuentos_listas["lista2"]
+                  output_costo["Precio_Venta_Lista_3"]=output_costo["Precio_Venta_Lista_3"]-output_costo["Precio_Venta_Lista_3"]*descuentos_listas["lista3"]
+                  output_costo["Precio_Venta_Lista_4"]=output_costo["Precio_Venta_Lista_4"]-output_costo["Precio_Venta_Lista_4"]*descuentos_listas["lista4"]
+                  output_costo["Precio_Venta_Lista_5"]=output_costo["Precio_Venta_Lista_5"]-output_costo["Precio_Venta_Lista_5"]*descuentos_listas["lista5"]
+                  
+              else:
+                  output_costo["Precio_Venta_Lista_1"]=output_costo["Precio_Venta_Lista_1"]-output_costo["Precio_Venta_Lista_1"]*descuento
+                  output_costo["Precio_Venta_Lista_2"]=output_costo["Precio_Venta_Lista_2"]-output_costo["Precio_Venta_Lista_2"]*descuento
+                  output_costo["Precio_Venta_Lista_3"]=output_costo["Precio_Venta_Lista_3"]-output_costo["Precio_Venta_Lista_3"]*descuento
+                  output_costo["Precio_Venta_Lista_4"]=output_costo["Precio_Venta_Lista_4"]-output_costo["Precio_Venta_Lista_4"]*descuento
+                  output_costo["Precio_Venta_Lista_5"]=output_costo["Precio_Venta_Lista_5"]-output_costo["Precio_Venta_Lista_5"]*descuento
+              
+              output_precio=output_costo
+              
+          else:
+              if output_costo==None:
+                  output_costo="No es posible calcular el precio de los productos; ya que hasta la fecha iterada no se encontró ningún producto importado que pertenezca al grupo y subgrupo indicado; por lo cual no es posible calibrar las curvas"
+                  output_precio=output_costo
+              
+              elif isinstance(output_costo, str):
+                  output_precio=output_costo
+              
+      
+
+        
+              
+              
+              
+          #print("Ultima Fecha Iterada:",ultima_fecha_iterada)
+          #print(output_precio)
+
+
+      except (Exception, psycopg2.Error) as error:
+          print("Error al conectarse a la base de datos:", error)
+      finally:
+          # Cerrar la conexión
+          if connection:
+              connection.close()
+              print("Conexión cerrada")
+              
+  return ultima_fecha_iterada.to_dict(orient="records"), output_precio.to_dict(orient="records")
+      
+  
+    
