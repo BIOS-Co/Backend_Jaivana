@@ -5,9 +5,6 @@
 <figcaption>Jaivaná</figcaption>
 </figure>
 
-# Manual de Usuario Sistema de Recomendación de Productos:
-
-# Estructura del Repositorio
 
 # Prerrequisitos para la Instalación:
 
